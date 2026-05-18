@@ -103,6 +103,7 @@ def send_request(
         f"No response received; HTTP Exceptions: {http_exceptions}"
     )
 
+
 def process_url(value):
     return re.sub("[/]+$", "", value)
 
