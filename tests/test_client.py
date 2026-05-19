@@ -59,9 +59,12 @@ def test_create_task(cli, task, mock_id, mock_url):
         assert m.last_request.timeout == cli.timeout
 
         m.post(f"{mock_url}/ga4gh/tes/v1/tasks", status_code=500)
+        m.post(f"{mock_url}/v1/tasks", status_code=500)
+        m.post(f"{mock_url}/tasks", status_code=500)
         with pytest.raises(requests.HTTPError):
             cli.create_task(task)
-
+        assert m.last_request.url == f"{mock_url}/tasks"
+        
         with pytest.raises(TypeError):
             cli.create_task("not_a_task_object")  # type: ignore
 
@@ -101,8 +104,11 @@ def test_list_tasks(cli, mock_url):
         assert m.last_request.url == f"{mock_url}/ga4gh/tes/v1/tasks?view=MINIMAL"
 
         m.get(f"{mock_url}/ga4gh/tes/v1/tasks", status_code=500)
+        m.get(f"{mock_url}/v1/tasks", status_code=500)
+        m.get(f"{mock_url}/tasks", status_code=500)
         with pytest.raises(requests.HTTPError):
             cli.list_tasks()
+        assert m.last_request.url == f"{mock_url}/tasks?view=MINIMAL"
 
 
 def test_cancel_task(cli, mock_id, mock_url):
@@ -115,8 +121,11 @@ def test_cancel_task(cli, mock_id, mock_url):
         assert m.last_request.timeout == cli.timeout
 
         m.post(f"{mock_url}/ga4gh/tes/v1/tasks/{mock_id}:cancel", status_code=500)
+        m.post(f"{mock_url}/v1/tasks/{mock_id}:cancel", status_code=500)
+        m.post(f"{mock_url}/tasks/{mock_id}:cancel", status_code=500)
         with pytest.raises(requests.HTTPError):
             cli.cancel_task(mock_id)
+        assert m.last_request.url == f"{mock_url}/tasks/{mock_id}:cancel"
 
         m.post(requests_mock.ANY, status_code=404, json={})
         with pytest.raises(requests.HTTPError):
@@ -131,8 +140,11 @@ def test_get_service_info(cli, mock_url):
         assert m.last_request.timeout == cli.timeout
 
         m.get(f"{mock_url}/ga4gh/tes/v1/service-info", status_code=500)
+        m.get(f"{mock_url}/v1/service-info", status_code=500)
+        m.get(f"{mock_url}/service-info", status_code=500)
         with pytest.raises(requests.HTTPError):
             cli.get_service_info()
+        assert m.last_request.url == f"{mock_url}/service-info"
 
 
 def test_wait(cli, mock_id, mock_url):
@@ -310,7 +322,8 @@ def test_send_request():
     # GET 500
     with requests_mock.Mocker() as m:
         m.get(f"{mock_url}/suffix/foo", status_code=500)
+        m.get(f"{mock_url}/foo", status_code=500)
         paths = append_suffixes_to_url(mock_urls, ["/foo"])
         with pytest.raises(requests.HTTPError):
             send_request(paths=paths)
-        assert m.last_request.url == f"{mock_url}/suffix/foo"
+        assert m.last_request.url == f"{mock_url}/foo"
