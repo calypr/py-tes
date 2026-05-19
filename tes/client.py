@@ -153,9 +153,7 @@ class HTTPClient(object):
             `tes.models.ServiceInfo` instance.
         """
         kwargs: Dict[str, Any] = self._request_params()
-        paths = append_suffixes_to_url(
-            self.urls, ["service-info", "tasks/service-info"]
-        )
+        paths = append_suffixes_to_url(elf.urls, ["service-info"])
         response = send_request(paths=paths, kwargs_requests=kwargs)
         return unmarshal(response.json(), ServiceInfo)
 
