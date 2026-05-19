@@ -64,7 +64,7 @@ def test_create_task(cli, task, mock_id, mock_url):
         with pytest.raises(requests.HTTPError):
             cli.create_task(task)
         assert m.last_request.url == f"{mock_url}/tasks"
-        
+
         with pytest.raises(TypeError):
             cli.create_task("not_a_task_object")  # type: ignore
 
