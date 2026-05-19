@@ -61,36 +61,47 @@ def send_request(
         The first successful response from the list of endpoints.
 
     Raises:
-        requests.exceptions.HTTPError: If no response is received from any
+        requests.exceptions.HTTPError: If no valid response is received from any
             path.
-        requests.exceptions.HTTPError: As soon as the first 4xx or 5xx status
-            code is received.
-        requests.exceptions.HTTPError: If, after trying all paths, at least one
-            404 status code and no other 4xx or 5xx status codes are received.
         ValueError: If an unsupported HTTP method is provided.
     """
     if kwargs_requests is None:
         kwargs_requests = {}
+
     if method not in ('get', 'post', 'put', 'delete'):
         raise ValueError(f"Unsupported HTTP method: {method}")
 
-    response: requests.Response = requests.Response()
+    last_response: Optional[requests.Response] = None
     http_exceptions: Dict[str, Exception] = {}
+
     for path in paths:
+        formatted_path = path.format(**kwargs)
         try:
             response = getattr(requests, method)(
-                path.format(**kwargs), **kwargs_requests)
+                formatted_path, **kwargs_requests
+            )
+            last_response = response
         except requests.exceptions.RequestException as exc:
-            http_exceptions[path] = exc
+            http_exceptions[formatted_path] = exc
             continue
-        if response.status_code != 404:
-            break
 
-    if response.status_code is None:
-        raise requests.exceptions.HTTPError(
-            f"No response received; HTTP Exceptions: {http_exceptions}")
-    response.raise_for_status()
-    return response
+        # Return immediately on success
+        if 200 <= response.status_code < 300:
+            return response
+
+        # Keep trying fallback endpoints on 404 or 5xx
+        if response.status_code == 404 or 500 <= response.status_code < 600:
+            continue
+
+        # For other 4xx errors, fail immediately
+        response.raise_for_status()
+
+    if last_response is not None:
+        last_response.raise_for_status()
+
+    raise requests.exceptions.HTTPError(
+        f"No response received; HTTP Exceptions: {http_exceptions}"
+    )
 
 
 def process_url(value):
@@ -142,9 +153,7 @@ class HTTPClient(object):
             `tes.models.ServiceInfo` instance.
         """
         kwargs: Dict[str, Any] = self._request_params()
-        paths = append_suffixes_to_url(
-            self.urls, ["service-info", "tasks/service-info"]
-        )
+        paths = append_suffixes_to_url(self.urls, ["service-info"])
         response = send_request(paths=paths, kwargs_requests=kwargs)
         return unmarshal(response.json(), ServiceInfo)
 

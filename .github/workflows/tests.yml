@@ -54,6 +54,11 @@ jobs:
 
       - name: Run integration tests
         run: |
-          /bin/bash -c "$(curl -fsSL https://github.com/ohsu-comp-bio/funnel/releases/latest/download/install.sh)"
+          /bin/bash -c "$(curl -fsSL https://github.com/calypr/funnel/releases/latest/download/install.sh)"
+          funnel --version
           funnel server --LocalStorage.AllowedDirs $HOME run &
+          for i in $(seq 1 20); do
++            curl -fsS http://localhost:8000/ga4gh/tes/v1/service-info && break
++            sleep 1
++          done
           pytest tests/integration
