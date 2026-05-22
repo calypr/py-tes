@@ -1,34 +1,39 @@
 name: Linting and testing
 
-on: [pull_request]
+on:
+  - push
 
 jobs:
   test:
+    name: test (TES ${{ matrix.tes-version }}, Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        # TODO: Handle multiple TES versions here, currently we're only testing against TES 1.1
-        # - py-tes v1.0 — TES 1.0
-        # - py-tes v1.1 — TES 1.1
-        # tes-version:
-        #   - "1.0"
-        #   - "1.1"
+        tes-version:
+          - "1.0"
+          - "1.1"
+        
+        # Only using Supported Python versions here:
+        # https://devguide.python.org/versions
+        #
+        # Available Versions:
+        # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
         python-version:
-          - "3.8"
-          - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
+          - "3.15.0-beta.1"
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -52,13 +57,33 @@ jobs:
             --cov-fail-under=99 \
             --ignore=tests/integration
 
+      # Note: Using the same install steps here as in nf-ga4gh plugin
+      # https://github.com/nextflow-io/nf-ga4gh/blob/1.4.1/.github/workflows/build.yml#L78-L101
+      - name: Install TES Server
+        run: |
+          # Pinning install script below to stable commit for security/reproducibility
+          # Ref: https://docs.github.com/en/actions/reference/security/secure-use#using-third-party-actions
+          # Release: https://github.com/calypr/funnel/releases/tag/v0.11.8
+
+          INSTALL_SCRIPT=https://raw.githubusercontent.com/calypr/funnel/4103475e492dec1fd853e9863d0caad15fc504c0/install.sh
+          curl -fsSL $INSTALL_SCRIPT | bash -s -- v0.11.8
+
+      - name: Start TES Server
+        run: |
+          set -euo pipefail
+          nohup funnel server run > funnel.log 2>&1 &
+          echo $! > funnel.pid
+          for i in $(seq 1 10); do
+            if curl -fsS http://localhost:8000/service-info >/dev/null 2>&1; then
+              echo "Funnel server started"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Funnel server failed to start!"
+          cat funnel.log
+          exit 1
+
       - name: Run integration tests
         run: |
-          /bin/bash -c "$(curl -fsSL https://github.com/calypr/funnel/releases/latest/download/install.sh)"
-          funnel --version
-          funnel server --LocalStorage.AllowedDirs $HOME run &
-          for i in $(seq 1 20); do
-+            curl -fsS http://localhost:8000/ga4gh/tes/v1/service-info && break
-+            sleep 1
-+          done
           pytest tests/integration

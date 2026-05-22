@@ -108,8 +108,8 @@ def timestampconv(value: Optional[str]) -> Optional[datetime]:
     Returns:
         Converted value.
     """
-    if value is None:
-        return value
+    if not value:
+        return None
     if isinstance(value, datetime):
         return value
     return dateutil.parser.parse(value)
@@ -493,7 +493,7 @@ class Organization:
 
 
 @attrs
-class Type:
+class ServiceType:
     artifact: Optional[str] = attrib(
         default=None, converter=strconv, validator=optional(instance_of(str))
     )

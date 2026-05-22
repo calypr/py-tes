@@ -2,3 +2,5 @@ attrs>=17.4.0
 python-dateutil>=2.6.1
 requests>=2.18.2
 sphinx_rtd_theme
+pytest
+
