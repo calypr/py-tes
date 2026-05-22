@@ -493,7 +493,7 @@ class Organization:
 
 
 @attrs
-class Type:
+class ServiceType:
     artifact: Optional[str] = attrib(
         default=None, converter=strconv, validator=optional(instance_of(str))
     )
