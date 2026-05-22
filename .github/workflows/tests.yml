@@ -1,6 +1,7 @@
 name: Linting and testing
 
-on: [pull_request]
+on:
+  - push
 
 jobs:
   test:
@@ -9,19 +10,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # TODO: Handle multiple TES versions here, currently we're only testing against TES 1.1
-        # - py-tes v1.0 — TES 1.0
-        # - py-tes v1.1 — TES 1.1
-        # tes-version:
-        #   - "1.0"
-        #   - "1.1"
+        tes-version:
+          - "1.0"
+          - "1.1"
+        
+        # Only using Supported Python versions here:
+        # https://devguide.python.org/versions
         python-version:
-          - "3.8"
-          - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
+          - "3.15"
 
     steps:
       - name: Check out code
